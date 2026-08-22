@@ -3,9 +3,9 @@ requires = ["setuptools>=75"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "politeload"
+name = "coursecarry"
 version = "0.5.0a0"
-description = "A personal POLITEMall / Brightspace backup utility for students."
+description = "An unofficial, local-first POLITEMall / Brightspace backup utility for students."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
@@ -16,10 +16,10 @@ dependencies = [
 ]
 
 [project.gui-scripts]
-politeload = "politeload.app:main"
+coursecarry = "coursecarry.app:main"
 
 [tool.setuptools.packages.find]
-include = ["politeload*"]
+include = ["coursecarry*"]
 
 [tool.setuptools.package-data]
-politeload = ["resources/*.png", "resources/*.ico"]
+coursecarry = ["resources/*.png", "resources/*.ico"]

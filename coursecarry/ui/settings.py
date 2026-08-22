@@ -65,7 +65,7 @@ class SettingsPage(QWidget):
         chrome_layout.addWidget(browse_chrome)
         form.addRow("Chrome executable", chrome_row)
 
-        self.profile = QLabel("Managed by PoliteLoad")
+        self.profile = QLabel("Managed by CourseCarry")
         self.profile.setObjectName("Muted")
         self.profile.setToolTip(str(config.browser_profile_path))
         form.addRow("Browser profile", self.profile)
@@ -91,8 +91,8 @@ class SettingsPage(QWidget):
         root.addWidget(panel)
 
         privacy = QLabel(
-            "PoliteLoad never asks for your school password. The managed browser profile may contain "
-            "an authenticated session; do not share it."
+            "CourseCarry is an unofficial, independent student project. It never asks for your school "
+            "password. The managed browser profile may contain an authenticated session; do not share it."
         )
         privacy.setObjectName("Muted")
         privacy.setWordWrap(True)

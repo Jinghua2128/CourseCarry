@@ -7,7 +7,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from .config import ConfigStore
-from .core.database import PoliteLoadDatabase
+from .core.database import CourseCarryDatabase
 from .ui import MainWindow
 from .ui.theme import APP_STYLESHEET, configure_app_font
 from .utils.logging import configure_logging
@@ -17,24 +17,24 @@ from .version import __version__
 
 def main() -> int:
     app = QApplication(sys.argv)
-    app.setApplicationName("PoliteLoad")
+    app.setApplicationName("CourseCarry")
     app.setApplicationVersion(__version__)
-    app.setOrganizationName("PoliteLoad")
+    app.setOrganizationName("CourseCarry")
     app.setStyle("Fusion")
     configure_app_font(app)
     app.setStyleSheet(APP_STYLESHEET)
     app.setWindowIcon(
-        QIcon(str(bundled_resource("politeload", "resources", "politeload-icon.png")))
+        QIcon(str(bundled_resource("coursecarry", "resources", "coursecarry-icon.png")))
     )
 
     store = ConfigStore()
     config = store.load()
     configure_logging(config.logs_dir)
-    database = PoliteLoadDatabase(config.database_path)
+    database = CourseCarryDatabase(config.database_path)
     try:
         database.initialize()
     except (OSError, sqlite3.Error) as error:
-        QMessageBox.critical(None, "PoliteLoad could not start", str(error))
+        QMessageBox.critical(None, "CourseCarry could not start", str(error))
         return 1
 
     window = MainWindow(config, store, database)

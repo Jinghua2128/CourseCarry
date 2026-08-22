@@ -89,7 +89,7 @@ class NPBrightspaceProvider(LMSProvider):
     ) -> list[Course]:
         page = self.active_page(context)
         on_status(
-            "Complete the normal POLITEMall login. PoliteLoad will then open My Courses; "
+            "Complete the normal POLITEMall login. CourseCarry will then open My Courses; "
             "you can also click it yourself."
         )
         try:

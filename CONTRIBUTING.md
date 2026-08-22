@@ -1,6 +1,6 @@
-# Contributing to PoliteLoad
+# Contributing to CourseCarry
 
-PoliteLoad is experimental and currently needs careful compatibility testing more than broad claims.
+CourseCarry is experimental and currently needs careful compatibility testing more than broad claims.
 
 ## Development setup
 

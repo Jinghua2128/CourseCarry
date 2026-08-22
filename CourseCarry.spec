@@ -4,7 +4,7 @@ analysis = Analysis(
     ["main.py"],
     pathex=[],
     binaries=[],
-    datas=[("politeload/resources/politeload-icon.png", "politeload/resources")],
+    datas=[("coursecarry/resources/coursecarry-icon.png", "coursecarry/resources")],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -19,14 +19,14 @@ exe = EXE(
     analysis.scripts,
     [],
     exclude_binaries=True,
-    name="PoliteLoad",
+    name="CourseCarry",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     console=False,
     disable_windowed_traceback=False,
-    icon=["politeload/resources/politeload-icon.ico"],
+    icon=["coursecarry/resources/coursecarry-icon.ico"],
 )
 
 collection = COLLECT(
@@ -35,5 +35,5 @@ collection = COLLECT(
     analysis.datas,
     strip=False,
     upx=True,
-    name="PoliteLoad",
+    name="CourseCarry",
 )

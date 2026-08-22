@@ -28,6 +28,7 @@ config.json
 # Build output
 build/
 dist/
+*.zip
 *.egg-info/
 
 # Local editor and scratch files

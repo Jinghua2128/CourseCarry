@@ -4,11 +4,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-from politeload.core.downloader import AuthenticatedDownloader
-from politeload.models import BackupFile, DownloadStatus
-from politeload.utils.filenames import MAX_FILENAME_UNITS, sanitize_filename
-from politeload.utils.logging import SensitiveDataFilter, redact_sensitive
-from politeload.utils.url_security import is_same_https_origin, source_fingerprint
+from coursecarry.core.downloader import AuthenticatedDownloader
+from coursecarry.models import BackupFile, DownloadStatus
+from coursecarry.utils.filenames import MAX_FILENAME_UNITS, sanitize_filename
+from coursecarry.utils.logging import SensitiveDataFilter, redact_sensitive
+from coursecarry.utils.url_security import is_same_https_origin, source_fingerprint
 
 
 class UrlSecurityTests(TestCase):
@@ -122,7 +122,7 @@ class CookieTransferTests(TestCase):
             self.context = CookieTransferTests.Context()
 
         def evaluate(self, script: str) -> str:
-            return "PoliteLoad Test Browser"
+            return "CourseCarry Test Browser"
 
     def test_secure_cookie_and_private_referer_boundary_are_preserved(self) -> None:
         downloader = AuthenticatedDownloader("https://lms.example.invalid")

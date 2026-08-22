@@ -63,7 +63,7 @@ class DashboardPage(QWidget):
         copy = QVBoxLayout()
         title = QLabel("Ready when you are")
         title.setObjectName("SectionTitle")
-        detail = QLabel("Chrome opens for normal school login. PoliteLoad never asks for your password.")
+        detail = QLabel("Chrome opens for normal school login. CourseCarry never asks for your password.")
         detail.setObjectName("Muted")
         detail.setWordWrap(True)
         copy.addWidget(title)

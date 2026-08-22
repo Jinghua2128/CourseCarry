@@ -18,7 +18,7 @@ from ..utils.filenames import (
 )
 from ..utils.logging import redact_sensitive
 from ..utils.url_security import source_fingerprint
-from .database import PoliteLoadDatabase
+from .database import CourseCarryDatabase
 from .downloader import AuthenticatedDownloader, DownloadResult
 
 
@@ -51,7 +51,7 @@ class BackupEvents:
 
 
 class BackupManager:
-    def __init__(self, config: AppConfig, database: PoliteLoadDatabase) -> None:
+    def __init__(self, config: AppConfig, database: CourseCarryDatabase) -> None:
         self.config = config
         self.database = database
         self.provider = NPBrightspaceProvider(config)
@@ -74,7 +74,7 @@ class BackupManager:
         try:
             run_id = self.database.start_backup_run()
             with sync_playwright() as playwright:
-                events.stage("Opening Chrome with your local PoliteLoad profile…")
+                events.stage("Opening Chrome with your local CourseCarry profile…")
                 context = self.provider.open_context(playwright)
                 try:
                     page = self.provider.active_page(context)

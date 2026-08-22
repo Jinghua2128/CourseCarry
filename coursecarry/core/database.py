@@ -10,7 +10,7 @@ from typing import Iterator
 from ..models import BackupStats, Course
 
 
-class PoliteLoadDatabase:
+class CourseCarryDatabase:
     """Small incremental index; JSON remains supported for course interchange."""
 
     def __init__(self, path: Path) -> None:

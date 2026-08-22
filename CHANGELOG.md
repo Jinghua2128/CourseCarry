@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Renamed the public application and Windows build to CourseCarry.
+- Added prominent unofficial-project, local-data, institutional-policy, and redistribution disclaimers.
+- Renamed the Python package, local data paths, database, logs, and Windows executable consistently.
+
 ## 0.5.0-alpha — 2026-08-21
 
 - Added the PySide6 desktop application with Dashboard, Courses, Backup, Activity, Settings, and first-run onboarding.

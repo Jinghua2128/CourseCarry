@@ -1,7 +1,7 @@
 from pathlib import Path
 from unittest import TestCase
 
-from politeload.utils.filenames import (
+from coursecarry.utils.filenames import (
     assignment_archive_path,
     deduplicate_filename,
     extract_semester,

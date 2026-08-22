@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..config import AppConfig, ConfigStore
-from ..core.database import PoliteLoadDatabase
+from ..core.database import CourseCarryDatabase
 from ..core.workers import BackupWorker, CourseScanWorker
 from ..models import BackupOptions, BackupStats, Course
 from ..utils.filenames import assignment_archive_path, extract_semester, sanitize_filename
@@ -39,7 +39,7 @@ class MainWindow(QMainWindow):
         self,
         config: AppConfig,
         config_store: ConfigStore,
-        database: PoliteLoadDatabase,
+        database: CourseCarryDatabase,
     ) -> None:
         super().__init__()
         self.config = config
@@ -51,7 +51,7 @@ class MainWindow(QMainWindow):
         self.page_animation: QPropertyAnimation | None = None
         self.animated_page: QWidget | None = None
 
-        self.setWindowTitle(f"PoliteLoad {__version__}")
+        self.setWindowTitle(f"CourseCarry {__version__}")
         self.resize(1220, 790)
         self.setMinimumSize(980, 680)
         self._build_ui()
@@ -75,7 +75,7 @@ class MainWindow(QMainWindow):
         sidebar_layout = QVBoxLayout(sidebar)
         sidebar_layout.setContentsMargins(22, 24, 22, 22)
         sidebar_layout.setSpacing(7)
-        brand = QLabel("POLITELOAD")
+        brand = QLabel("COURSECARRY")
         brand.setObjectName("Brand")
         version = QLabel(f"v{__version__}\nEXPERIMENTAL BUILD")
         version.setObjectName("Version")
@@ -111,7 +111,7 @@ class MainWindow(QMainWindow):
             if index == 0:
                 button.setChecked(True)
         sidebar_layout.addStretch()
-        privacy = QLabel("Local-first backup\nNo password capture")
+        privacy = QLabel("Unofficial student app\nLocal-first backup\nNo password capture")
         privacy.setObjectName("Muted")
         sidebar_layout.addWidget(privacy)
         root.addWidget(sidebar)
@@ -384,7 +384,7 @@ class MainWindow(QMainWindow):
             QMessageBox.information(
                 self,
                 "Backup is still running",
-                "Cancel the active operation and wait for it to stop safely before closing PoliteLoad.",
+                "Cancel the active operation and wait for it to stop safely before closing CourseCarry.",
             )
             event.ignore()
             return

@@ -6,6 +6,7 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+APP_DATA_DIR_NAME = "CourseCarry"
 
 
 def is_frozen() -> bool:
@@ -15,7 +16,7 @@ def is_frozen() -> bool:
 def runtime_root() -> Path:
     """Return a writable root for settings and private runtime data."""
 
-    override = os.environ.get("POLITELOAD_DATA_DIR")
+    override = os.environ.get("COURSECARRY_DATA_DIR")
     if override:
         return Path(override).expanduser()
 
@@ -24,7 +25,7 @@ def runtime_root() -> Path:
 
     local_app_data = os.environ.get("LOCALAPPDATA")
     base = Path(local_app_data) if local_app_data else Path.home() / "AppData" / "Local"
-    return base / "PoliteLoad"
+    return base / APP_DATA_DIR_NAME
 
 
 def resolve_runtime_path(value: str | Path) -> Path:

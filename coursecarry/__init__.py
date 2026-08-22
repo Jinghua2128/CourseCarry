@@ -1,4 +1,4 @@
-"""PoliteLoad desktop application package."""
+"""CourseCarry desktop application package."""
 
 from .version import __version__
 

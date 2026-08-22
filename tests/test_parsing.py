@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from politeload.providers.np_brightspace import (
+from coursecarry.providers.np_brightspace import (
     NPBrightspaceProvider,
     extract_course_id,
     extract_query_value,

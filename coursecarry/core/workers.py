@@ -11,7 +11,7 @@ from ..models import Assignment, BackupOptions, BackupStats, Course, DownloadSta
 from ..providers import NPBrightspaceProvider
 from ..utils.logging import redact_sensitive
 from .backup_manager import BackupEvents, BackupManager
-from .database import PoliteLoadDatabase
+from .database import CourseCarryDatabase
 
 
 class CourseScanWorker(QObject):
@@ -20,7 +20,7 @@ class CourseScanWorker(QObject):
     failed = Signal(str)
     completed = Signal()
 
-    def __init__(self, config: AppConfig, database: PoliteLoadDatabase) -> None:
+    def __init__(self, config: AppConfig, database: CourseCarryDatabase) -> None:
         super().__init__()
         self.config = config
         self.database = database
@@ -76,7 +76,7 @@ class BackupWorker(QObject, BackupEvents):
     def __init__(
         self,
         config: AppConfig,
-        database: PoliteLoadDatabase,
+        database: CourseCarryDatabase,
         courses: list[Course],
         options: BackupOptions,
     ) -> None:

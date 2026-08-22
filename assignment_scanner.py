@@ -2,7 +2,7 @@ from urllib.parse import urljoin, urlparse, parse_qs
 
 from playwright.sync_api import Page, Error as PlaywrightError
 
-from politeload.utils.url_security import is_same_https_origin, require_same_https_origin
+from coursecarry.utils.url_security import is_same_https_origin, require_same_https_origin
 
 
 LMS_BASE = "https://nplms.polite.edu.sg"

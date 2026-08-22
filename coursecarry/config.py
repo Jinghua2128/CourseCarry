@@ -39,7 +39,7 @@ class AppConfig:
 
     @property
     def database_path(self) -> Path:
-        return self.data_dir / "politeload.db"
+        return self.data_dir / "coursecarry.db"
 
     @property
     def logs_dir(self) -> Path:

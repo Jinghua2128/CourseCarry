@@ -5,7 +5,7 @@ Copy this form into a bug report and remove personal data before submitting it.
 ```text
 Institution:
 LMS hostname:
-PoliteLoad version:
+CourseCarry version:
 Windows version:
 Login successful: yes / no
 Courses detected: number only

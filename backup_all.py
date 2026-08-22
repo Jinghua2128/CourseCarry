@@ -1,4 +1,4 @@
-"""Legacy console entry point backed by the current PoliteLoad engine.
+"""Legacy console entry point backed by the current CourseCarry engine.
 
 The desktop app is the recommended interface. This module remains for developers
 who used the original ``python backup_all.py`` workflow.
@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import json
 
-from politeload.config import ConfigStore
-from politeload.core.backup_manager import BackupEvents, BackupManager
-from politeload.core.database import PoliteLoadDatabase
-from politeload.models import Assignment, BackupOptions, Course, DownloadStatus
-from politeload.utils.logging import configure_logging
-from politeload.version import __version__
+from coursecarry.config import ConfigStore
+from coursecarry.core.backup_manager import BackupEvents, BackupManager
+from coursecarry.core.database import CourseCarryDatabase
+from coursecarry.models import Assignment, BackupOptions, Course, DownloadStatus
+from coursecarry.utils.logging import configure_logging
+from coursecarry.version import __version__
 
 
 class ConsoleEvents(BackupEvents):
@@ -49,7 +49,7 @@ def main() -> int:
     store = ConfigStore()
     config = store.load()
     configure_logging(config.logs_dir)
-    database = PoliteLoadDatabase(config.database_path)
+    database = CourseCarryDatabase(config.database_path)
     database.initialize()
 
     if not config.courses_path.exists():
@@ -58,7 +58,7 @@ def main() -> int:
 
     data = json.loads(config.courses_path.read_text(encoding="utf-8"))
     courses = [Course.from_dict(item) for item in data.get("courses", [])]
-    print(f"PoliteLoad v{__version__} — console compatibility mode")
+    print(f"CourseCarry v{__version__} — console compatibility mode")
     print(f"Courses loaded: {len(courses)}")
     print("Chrome will open. Complete the normal school login if requested.")
 

@@ -2,8 +2,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-from politeload.core.downloader import AuthenticatedDownloader, should_skip_existing
-from politeload.models import BackupFile, DownloadStatus
+from coursecarry.core.downloader import AuthenticatedDownloader, should_skip_existing
+from coursecarry.models import BackupFile, DownloadStatus
 
 
 class FakeResponse:

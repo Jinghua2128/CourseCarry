@@ -1,6 +1,6 @@
 # Screenshots
 
-These screenshots were rendered from the actual PoliteLoad desktop application with fake sample course information. They contain no real student or course data.
+These screenshots were rendered from the actual CourseCarry desktop application with fake sample course information. They contain no real student or course data.
 
 Included captures:
 

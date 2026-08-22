@@ -13,8 +13,8 @@ if errorlevel 1 exit /b 1
 ".venv\Scripts\python.exe" -m unittest discover -s tests
 if errorlevel 1 exit /b 1
 
-".venv\Scripts\python.exe" -m PyInstaller --noconfirm --clean PoliteLoad.spec
+".venv\Scripts\python.exe" -m PyInstaller --noconfirm --clean CourseCarry.spec
 if errorlevel 1 exit /b 1
 
 echo.
-echo Build complete: dist\PoliteLoad\PoliteLoad.exe
+echo Build complete: dist\CourseCarry\CourseCarry.exe

@@ -1,6 +1,6 @@
 # Security audit — 2026-08-21
 
-PoliteLoad received a pre-publication Standard Codex Security review covering the authenticated browser/download boundary, archive filesystem behavior, private runtime state, diagnostics, packaging inputs, examples, and screenshots. The reviewed pre-remediation snapshot produced four medium and two low findings; all six were addressed in the current source.
+The project received a pre-publication Standard Codex Security review covering the authenticated browser/download boundary, archive filesystem behavior, private runtime state, diagnostics, packaging inputs, examples, and screenshots. The reviewed pre-remediation snapshot produced four medium and two low findings; all six were addressed in the current source.
 
 | Finding | Severity | Current remediation |
 | --- | --- | --- |

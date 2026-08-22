@@ -55,7 +55,7 @@ class SensitiveDataFilter(logging.Filter):
 
 def configure_logging(logs_dir: Path) -> Path:
     logs_dir.mkdir(parents=True, exist_ok=True)
-    log_path = logs_dir / f"politeload-{date.today().isoformat()}.log"
+    log_path = logs_dir / f"coursecarry-{date.today().isoformat()}.log"
 
     handler = logging.FileHandler(log_path, encoding="utf-8")
     handler.setFormatter(

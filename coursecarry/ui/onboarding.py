@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 class OnboardingDialog(QDialog):
     def __init__(self, archive_path: str, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Welcome to PoliteLoad")
+        self.setWindowTitle("Welcome to CourseCarry")
         self.setModal(True)
         self.setMinimumSize(620, 430)
         root = QVBoxLayout(self)
@@ -32,8 +32,9 @@ class OnboardingDialog(QDialog):
         self.archive = QLineEdit(archive_path)
         self._add_page(
             "Personal backups, kept personal",
-            "PoliteLoad creates an offline archive of course content your student account can already access.\n\n"
-            "It does not store or ask for your school password.",
+            "CourseCarry creates an offline archive of course content your student account can already access.\n\n"
+            "It is an unofficial, independent student project and is not affiliated with or endorsed by "
+            "POLITEMall, D2L, or any Polytechnic. It does not store or ask for your school password.",
         )
         location = self._page_shell(
             "Choose your archive location",
@@ -48,12 +49,12 @@ class OnboardingDialog(QDialog):
         self.stack.addWidget(location)
         self._add_page(
             "Login stays in Chrome",
-            "When you scan or back up, PoliteLoad opens a managed Chrome window. Complete the normal "
-            "Microsoft / school SSO flow and MFA there.\n\nNever enter those credentials into PoliteLoad.",
+            "When you scan or back up, CourseCarry opens a managed Chrome window. Complete the normal "
+            "Microsoft / school SSO flow and MFA there.\n\nNever enter those credentials into CourseCarry.",
         )
         self._add_page(
             "Ready to scan",
-            "Use Scan Courses after setup. PoliteLoad will only report a connected session after it "
+            "Use Scan Courses after setup. CourseCarry will only report a connected session after it "
             "actually detects your course page.",
         )
 

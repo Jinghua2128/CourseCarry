@@ -8,10 +8,10 @@ from urllib.parse import urljoin
 
 from playwright.sync_api import Page
 
-from politeload.core.downloader import AuthenticatedDownloader
-from politeload.models import BackupFile
-from politeload.utils.filenames import assignment_archive_path, sanitize_filename
-from politeload.utils.url_security import (
+from coursecarry.core.downloader import AuthenticatedDownloader
+from coursecarry.models import BackupFile
+from coursecarry.utils.filenames import assignment_archive_path, sanitize_filename
+from coursecarry.utils.url_security import (
     is_same_https_origin,
     require_same_https_origin,
     source_fingerprint,

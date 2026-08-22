@@ -1,7 +1,7 @@
 @echo off
 cd /d "%~dp0"
 if not exist ".venv\Scripts\python.exe" (
-  echo PoliteLoad is not set up yet. Run setup_windows.bat first.
+  echo CourseCarry is not set up yet. Run setup_windows.bat first.
   pause
   exit /b 1
 )

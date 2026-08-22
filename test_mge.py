@@ -11,7 +11,7 @@ import json
 from playwright.sync_api import sync_playwright
 
 from assignment_scanner import scan_assignments
-from politeload.config import ConfigStore
+from coursecarry.config import ConfigStore
 from submission_downloader import download_submission_files, scan_submission
 
 

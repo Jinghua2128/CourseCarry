@@ -1,6 +1,6 @@
-"""Compatibility entry point for launching the PoliteLoad desktop app."""
+"""Compatibility entry point for launching the CourseCarry desktop app."""
 
-from politeload.app import main
+from coursecarry.app import main
 
 
 if __name__ == "__main__":
