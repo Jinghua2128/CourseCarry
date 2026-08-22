@@ -1,0 +1,12 @@
+{
+  "course_count": 1,
+  "courses": [
+    {
+      "id": 123456,
+      "name": "SAMPLE COURSE",
+      "code": "26S1-1_SAMPLE_000001",
+      "href": "/d2l/home/123456",
+      "full_text": "SAMPLE COURSE"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "base_url": "https://politemall.polite.edu.sg/",
+  "lms_base_url": "https://nplms.polite.edu.sg",
+  "archive_dir": "archive",
+  "browser_profile_dir": "browser-data",
+  "chrome_executable": "",
+  "chunk_size_mb": 1,
+  "concurrent_downloads": 1,
+  "theme": "Dark",
+  "animations": true,
+  "first_run": true
+}
