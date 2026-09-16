@@ -56,6 +56,28 @@ class DuplicateDetectionTests(TestCase):
             source = "https://lms.example.invalid/file/1"
             self.assertFalse(should_skip_existing(path, None, source, source))
 
+    def test_rotating_query_is_skipped_when_stable_file_id_and_size_match(self) -> None:
+        with TemporaryDirectory() as directory:
+            destination = Path(directory) / "submission.bin"
+            destination.write_bytes(b"same")
+            downloader = AuthenticatedDownloader(
+                "https://lms.example.invalid", chunk_size=3
+            )
+            downloader.session = FakeSession(FakeResponse(b"same"))
+            result = downloader.download(
+                BackupFile(
+                    "submission.bin",
+                    "https://lms.example.invalid/file/1?token=new",
+                    stable_id="stable-file-1",
+                ),
+                destination,
+                "stable-file-1",
+                lambda downloaded, total: None,
+                lambda: False,
+            )
+            self.assertEqual(result.status, DownloadStatus.SKIPPED)
+            self.assertEqual(destination.read_bytes(), b"same")
+
 
 class StreamingDownloadTests(TestCase):
     def test_streams_to_part_then_atomically_completes(self) -> None:

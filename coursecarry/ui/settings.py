@@ -11,12 +11,13 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QScrollArea,
     QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 
-from ..config import AppConfig
+from ..config import AppConfig, validate_provider_url
 from .components import page_heading
 
 
@@ -43,6 +44,25 @@ class SettingsPage(QWidget):
         form.setContentsMargins(22, 20, 22, 20)
         form.setHorizontalSpacing(24)
         form.setVerticalSpacing(14)
+
+        self.provider = QComboBox()
+        self.provider.addItem("Ngee Ann Polytechnic (tested)", "np_brightspace")
+        self.provider.addItem("Custom Brightspace (untested)", "custom_brightspace")
+        provider_index = self.provider.findData(config.provider_id)
+        self.provider.setCurrentIndex(max(provider_index, 0))
+        form.addRow("Institution preset", self.provider)
+
+        self.institution = QLineEdit(config.institution_name)
+        self.institution.setPlaceholderText("Institution name")
+        form.addRow("Institution name", self.institution)
+
+        self.portal_url = QLineEdit(config.base_url)
+        self.portal_url.setPlaceholderText("https://portal.example.edu/")
+        form.addRow("Portal URL", self.portal_url)
+
+        self.lms_url = QLineEdit(config.lms_base_url)
+        self.lms_url.setPlaceholderText("https://lms.example.edu")
+        form.addRow("Brightspace URL", self.lms_url)
 
         archive_row = QWidget()
         archive_layout = QHBoxLayout(archive_row)
@@ -88,7 +108,12 @@ class SettingsPage(QWidget):
         self.animations = QCheckBox("Use subtle interface animations")
         self.animations.setChecked(config.animations)
         form.addRow("Animations", self.animations)
-        root.addWidget(panel)
+        self.provider.currentIndexChanged.connect(self._provider_changed)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(panel)
+        root.addWidget(scroll, 1)
 
         privacy = QLabel(
             "CourseCarry is an unofficial, independent student project. It never asks for your school "
@@ -97,7 +122,6 @@ class SettingsPage(QWidget):
         privacy.setObjectName("Muted")
         privacy.setWordWrap(True)
         root.addWidget(privacy)
-        root.addStretch()
 
         actions = QHBoxLayout()
         open_logs = QPushButton("Open Logs")
@@ -111,10 +135,22 @@ class SettingsPage(QWidget):
         root.addLayout(actions)
 
     def apply_to(self, config: AppConfig) -> None:
+        config.provider_id = str(self.provider.currentData())
+        config.institution_name = self.institution.text().strip() or "Custom institution"
+        config.base_url = validate_provider_url(self.portal_url.text(), "Portal URL")
+        config.lms_base_url = validate_provider_url(
+            self.lms_url.text(), "Brightspace URL"
+        ).rstrip("/")
         config.archive_dir = self.archive.text().strip()
         config.chrome_executable = self.chrome.text().strip()
         config.chunk_size_mb = self.chunk.value()
         config.animations = self.animations.isChecked()
+
+    def _provider_changed(self) -> None:
+        if self.provider.currentData() == "np_brightspace":
+            self.institution.setText("Ngee Ann Polytechnic")
+            self.portal_url.setText("https://politemall.polite.edu.sg/")
+            self.lms_url.setText("https://nplms.polite.edu.sg")
 
     def _browse_archive(self) -> None:
         selected = QFileDialog.getExistingDirectory(self, "Choose archive location", self.archive.text())

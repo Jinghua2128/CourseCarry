@@ -1,4 +1,6 @@
 {
+  "provider_id": "np_brightspace",
+  "institution_name": "Ngee Ann Polytechnic",
   "base_url": "https://politemall.polite.edu.sg/",
   "lms_base_url": "https://nplms.polite.edu.sg",
   "archive_dir": "archive",

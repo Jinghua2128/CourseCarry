@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from threading import Event
 
 from PySide6.QtCore import QObject, Signal, Slot
@@ -8,9 +7,10 @@ from playwright.sync_api import sync_playwright
 
 from ..config import AppConfig
 from ..models import Assignment, BackupOptions, BackupStats, Course, DownloadStatus
-from ..providers import NPBrightspaceProvider
+from ..providers import create_provider
 from ..utils.logging import redact_sensitive
 from .backup_manager import BackupEvents, BackupManager
+from .course_cache import CourseCache, CourseCacheStore, merge_course_results, utc_now_iso
 from .database import CourseCarryDatabase
 
 
@@ -18,6 +18,7 @@ class CourseScanWorker(QObject):
     status_changed = Signal(str)
     courses_ready = Signal(object)
     failed = Signal(str)
+    cancelled = Signal()
     completed = Signal()
 
     def __init__(self, config: AppConfig, database: CourseCarryDatabase) -> None:
@@ -30,37 +31,43 @@ class CourseScanWorker(QObject):
     def run(self) -> None:
         try:
             with sync_playwright() as playwright:
-                provider = NPBrightspaceProvider(self.config)
+                provider = create_provider(self.config)
                 context = provider.open_context(playwright)
                 try:
                     courses = provider.wait_for_courses(
                         context, self.status_changed.emit, self._cancelled.is_set
                     )
-                    if not self._cancelled.is_set():
-                        self.config.data_dir.mkdir(parents=True, exist_ok=True)
-                        self.config.courses_path.write_text(
-                            json.dumps(
-                                {
-                                    "course_count": len(courses),
-                                    "courses": [course.to_dict() for course in courses],
-                                },
-                                ensure_ascii=False,
-                                indent=2,
-                            )
-                            + "\n",
-                            encoding="utf-8",
-                        )
-                        self.database.save_courses(courses)
-                        self.courses_ready.emit(courses)
                 finally:
                     context.close()
+
+            if self._cancelled.is_set():
+                self.cancelled.emit()
+                return
+
+            scanned_at = utc_now_iso()
+            cache_store = CourseCacheStore(self.config.courses_path)
+            cached = cache_store.load()
+            merged = merge_course_results(
+                cached.courses,
+                courses,
+                scanned_at=scanned_at,
+                complete=True,
+            )
+            cache = CourseCache(merged, scanned_at)
+            self.database.save_courses(merged)
+            cache_store.save(cache)
+            self.courses_ready.emit(cache)
         except Exception as error:
-            self.failed.emit(redact_sensitive(error))
+            if self._cancelled.is_set():
+                self.cancelled.emit()
+            else:
+                self.failed.emit(redact_sensitive(error))
         finally:
             self.completed.emit()
 
     def cancel(self) -> None:
         self._cancelled.set()
+        self.status_changed.emit("Cancelling scan and closing Chrome…")
 
 
 class BackupWorker(QObject, BackupEvents):

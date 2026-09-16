@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
 from datetime import datetime
-from pathlib import Path
 
 from PySide6.QtCore import QEasingCurve, QPropertyAnimation, QThread, QTimer, QUrl
 from PySide6.QtGui import QCloseEvent, QDesktopServices
@@ -21,15 +19,21 @@ from PySide6.QtWidgets import (
 )
 
 from ..config import AppConfig, ConfigStore
+from ..core.course_cache import (
+    CourseCache,
+    CourseCacheStore,
+    cache_is_from_earlier_day,
+    format_last_scan,
+)
 from ..core.database import CourseCarryDatabase
 from ..core.workers import BackupWorker, CourseScanWorker
 from ..models import BackupOptions, BackupStats, Course
-from ..utils.filenames import assignment_archive_path, extract_semester, sanitize_filename
+from ..utils.filenames import extract_semester, sanitize_filename
 from ..version import __version__
 from .activity import ActivityPage
 from .backup import BackupPage
-from .courses import CoursesPage
-from .dashboard import DashboardPage
+from .course_library import CourseLibraryPage
+from .overview import DashboardPage
 from .onboarding import OnboardingDialog
 from .settings import SettingsPage
 
@@ -45,9 +49,12 @@ class MainWindow(QMainWindow):
         self.config = config
         self.config_store = config_store
         self.database = database
-        self.courses = self._load_courses()
+        self.course_cache_store = CourseCacheStore(self.config.courses_path)
+        self.course_cache = self.course_cache_store.load()
+        self.courses = self.course_cache.courses
         self.worker_thread: QThread | None = None
         self.worker = None
+        self._stale_prompt_shown = False
         self.page_animation: QPropertyAnimation | None = None
         self.animated_page: QWidget | None = None
 
@@ -57,10 +64,13 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._connect_pages()
         self._set_courses(self.courses)
+        self._refresh_scan_labels()
         self.refresh_dashboard()
 
         if self.config.first_run:
             QTimer.singleShot(100, self._show_onboarding)
+        else:
+            QTimer.singleShot(250, self._offer_stale_course_choice)
 
     def _build_ui(self) -> None:
         central = QWidget()
@@ -85,7 +95,7 @@ class MainWindow(QMainWindow):
 
         self.stack = QStackedWidget()
         self.dashboard = DashboardPage()
-        self.courses_page = CoursesPage()
+        self.courses_page = CourseLibraryPage()
         self.backup_page = BackupPage()
         self.activity_page = ActivityPage()
         self.settings_page = SettingsPage(self.config)
@@ -124,22 +134,26 @@ class MainWindow(QMainWindow):
         topbar.setObjectName("TopBar")
         topbar_layout = QHBoxLayout(topbar)
         topbar_layout.setContentsMargins(30, 14, 30, 14)
-        topbar_layout.addWidget(QLabel("POLITEMall / Brightspace"))
+        self.portal_label = QLabel(self.config.provider_label)
+        topbar_layout.addWidget(self.portal_label)
         topbar_layout.addStretch()
-        self.status = QLabel("●  Session unchecked")
+        self.status = QLabel("●  Saved list ready")
         self.status.setObjectName("StatusUnknown")
         topbar_layout.addWidget(self.status)
+        self.global_scan_button = QPushButton("Scan for Updates")
+        self.global_scan_button.clicked.connect(self.start_scan)
+        topbar_layout.addWidget(self.global_scan_button)
         content_layout.addWidget(topbar)
         content_layout.addWidget(self.stack, 1)
         root.addWidget(content, 1)
 
     def _connect_pages(self) -> None:
         self.dashboard.scan_requested.connect(self.start_scan)
-        self.dashboard.backup_requested.connect(lambda: self._navigate(2))
+        self.dashboard.backup_requested.connect(lambda: self._navigate(1))
         self.dashboard.archive_requested.connect(self.open_archive)
         self.dashboard.activity_requested.connect(lambda: self._navigate(3))
         self.courses_page.scan_requested.connect(self.start_scan)
-        self.courses_page.backup_requested.connect(self._backup_single_course)
+        self.courses_page.download_requested.connect(self._download_selected_courses)
         self.courses_page.folder_requested.connect(self._open_course_folder)
         self.backup_page.start_requested.connect(self.start_backup)
         self.backup_page.cancel_requested.connect(self.cancel_worker)
@@ -155,18 +169,42 @@ class MainWindow(QMainWindow):
             self.config_store.save(self.config)
             self.settings_page.archive.setText(str(self.config.archive_path))
             self.activity_page.add("INFO", "First-run setup completed.")
-
-    def _load_courses(self) -> list[Course]:
-        try:
-            data = json.loads(self.config.courses_path.read_text(encoding="utf-8"))
-            return [Course.from_dict(item) for item in data.get("courses", [])]
-        except (OSError, ValueError, TypeError, KeyError):
-            return []
+        self._offer_stale_course_choice()
 
     def _set_courses(self, courses: list[Course]) -> None:
         self.courses = courses
         self.courses_page.set_courses(courses)
         self.backup_page.set_courses(courses)
+
+    def _refresh_scan_labels(self) -> None:
+        scan_text = format_last_scan(self.course_cache.last_successful_scan_at)
+        self.courses_page.set_last_scan(scan_text)
+        self.dashboard.set_scan_status(scan_text)
+
+    def _offer_stale_course_choice(self) -> None:
+        if self._stale_prompt_shown or not self.courses:
+            return
+        if not cache_is_from_earlier_day(self.course_cache.last_successful_scan_at):
+            return
+        self._stale_prompt_shown = True
+        message_box = QMessageBox(self)
+        message_box.setWindowTitle("Check for new courses?")
+        message_box.setIcon(QMessageBox.Icon.Question)
+        message_box.setText("Your saved course list is from an earlier day.")
+        message_box.setInformativeText(
+            "Keep using it now, or open Chrome to scan for newly released courses."
+        )
+        use_saved = message_box.addButton(
+            "Use Saved Courses", QMessageBox.ButtonRole.AcceptRole
+        )
+        scan_again = message_box.addButton(
+            "Scan for Updates", QMessageBox.ButtonRole.ActionRole
+        )
+        message_box.exec()
+        if message_box.clickedButton() is scan_again:
+            self.start_scan()
+        elif message_box.clickedButton() is use_saved:
+            self.activity_page.add("INFO", "Using the saved course list for this session.")
 
     def start_scan(self) -> None:
         if self._job_running():
@@ -176,6 +214,8 @@ class MainWindow(QMainWindow):
             return
         self._navigate(1)
         self.courses_page.set_busy(True)
+        self.courses_page.set_scan_status("Opening managed Chrome…")
+        self.global_scan_button.setText("Cancel Scan")
         self.status.setText("●  Checking session")
         self.status.setObjectName("StatusUnknown")
         self.status.style().unpolish(self.status)
@@ -189,6 +229,7 @@ class MainWindow(QMainWindow):
         worker.status_changed.connect(self._scan_status)
         worker.courses_ready.connect(self._scan_ready)
         worker.failed.connect(self._scan_failed)
+        worker.cancelled.connect(self._scan_cancelled)
         worker.completed.connect(thread.quit)
         worker.completed.connect(worker.deleteLater)
         thread.finished.connect(self._job_finished)
@@ -198,28 +239,56 @@ class MainWindow(QMainWindow):
         thread.start()
 
     def _scan_status(self, message: str) -> None:
+        self.courses_page.set_scan_status(message)
         self.activity_page.add("INFO", message)
 
-    def _scan_ready(self, courses: list[Course]) -> None:
-        self._set_courses(courses)
-        self.status.setText("●  Connected")
+    def _scan_ready(self, cache: CourseCache) -> None:
+        self.course_cache = cache
+        self._set_courses(cache.courses)
+        self._refresh_scan_labels()
+        self.status.setText("●  Scan complete")
         self.status.setObjectName("StatusConnected")
         self.status.style().unpolish(self.status)
         self.status.style().polish(self.status)
-        self.activity_page.add("INFO", f"Detected {len(courses)} courses.")
+        available = sum(course.available for course in cache.courses)
+        unavailable = len(cache.courses) - available
+        detail = f"Found {available} available course(s). Chrome is closed."
+        if unavailable:
+            detail += f" {unavailable} saved course(s) are marked unavailable."
+        self.courses_page.set_scan_status(detail)
+        self.activity_page.add("INFO", detail)
         self.refresh_dashboard()
+        QMessageBox.information(self, "Course scan complete", detail)
 
     def _scan_failed(self, message: str) -> None:
         self.status.setText("●  Login required")
         self.status.setObjectName("StatusUnknown")
         self.status.style().unpolish(self.status)
         self.status.style().polish(self.status)
+        self.courses_page.set_scan_status(
+            "The scan did not finish. Chrome is closed and the saved list was kept."
+        )
         self.activity_page.add("ERROR", message)
         QMessageBox.warning(self, "Course scan could not finish", message)
+
+    def _scan_cancelled(self) -> None:
+        self.status.setText("●  Scan cancelled")
+        self.status.setObjectName("StatusUnknown")
+        self.status.style().unpolish(self.status)
+        self.status.style().polish(self.status)
+        message = "Scan cancelled. Chrome is closed and your saved course list was kept."
+        self.courses_page.set_scan_status(message)
+        self.activity_page.add("INFO", message)
+        QMessageBox.information(self, "Course scan cancelled", message)
 
     def _backup_single_course(self, course: Course) -> None:
         self._navigate(2)
         self.backup_page.select_course(course)
+
+    def _download_selected_courses(self, courses: list[Course]) -> None:
+        self._navigate(2)
+        self.backup_page.select_courses(courses)
+        self.start_backup(courses, BackupOptions())
 
     def start_backup(self, courses: list[Course], options: BackupOptions) -> None:
         if self._job_running():
@@ -232,6 +301,7 @@ class MainWindow(QMainWindow):
             return
 
         self.backup_page.set_running(True)
+        self.global_scan_button.setDisabled(True)
         self.activity_page.add("INFO", f"Backup started for {len(courses)} course(s).")
         thread = QThread(self)
         worker = BackupWorker(self.config, self.database, courses, options)
@@ -264,7 +334,12 @@ class MainWindow(QMainWindow):
     def _backup_finished(self, stats: BackupStats, cancelled: bool) -> None:
         self.backup_page.finish(stats, cancelled)
         self.refresh_dashboard()
-        title = "Backup Cancelled" if cancelled else "Backup Complete"
+        if cancelled:
+            title = "Backup Cancelled"
+        elif stats.failed or stats.incomplete:
+            title = "Backup Completed with Problems"
+        else:
+            title = "Backup Complete"
         message_box = QMessageBox(self)
         message_box.setWindowTitle(title)
         message_box.setIcon(QMessageBox.Icon.Information)
@@ -291,6 +366,8 @@ class MainWindow(QMainWindow):
 
     def _job_finished(self) -> None:
         self.courses_page.set_busy(False)
+        self.global_scan_button.setEnabled(True)
+        self.global_scan_button.setText("Scan for Updates")
         self.worker_thread = None
         self.worker = None
 
@@ -316,8 +393,13 @@ class MainWindow(QMainWindow):
             animation.start()
 
     def save_settings(self) -> None:
-        self.settings_page.apply_to(self.config)
+        try:
+            self.settings_page.apply_to(self.config)
+        except ValueError as error:
+            QMessageBox.warning(self, "Check institution settings", str(error))
+            return
         self.config_store.save(self.config)
+        self.portal_label.setText(self.config.provider_label)
         self.activity_page.add("INFO", "Settings saved locally.")
         self.refresh_dashboard()
 
@@ -383,8 +465,8 @@ class MainWindow(QMainWindow):
         if self._job_running():
             QMessageBox.information(
                 self,
-                "Backup is still running",
-                "Cancel the active operation and wait for it to stop safely before closing CourseCarry.",
+                "An operation is still running",
+                "Cancel it and wait for Chrome to close safely before closing CourseCarry.",
             )
             event.ignore()
             return

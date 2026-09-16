@@ -4,12 +4,15 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from .utils.paths import resolve_runtime_path, runtime_root
 
 
 @dataclass(slots=True)
 class AppConfig:
+    provider_id: str = "np_brightspace"
+    institution_name: str = "Ngee Ann Polytechnic"
     base_url: str = "https://politemall.polite.edu.sg/"
     lms_base_url: str = "https://nplms.polite.edu.sg"
     archive_dir: str = "archive"
@@ -45,6 +48,13 @@ class AppConfig:
     def logs_dir(self) -> Path:
         return runtime_root() / "logs"
 
+    @property
+    def provider_label(self) -> str:
+        if self.provider_id == "np_brightspace":
+            return "Ngee Ann Polytechnic (tested)"
+        name = self.institution_name or "Custom Brightspace"
+        return name if "untested" in name.casefold() else f"{name} (untested)"
+
     @classmethod
     def from_dict(cls, values: dict[str, Any]) -> "AppConfig":
         allowed = cls.__dataclass_fields__.keys()
@@ -74,3 +84,15 @@ class ConfigStore:
             json.dumps(config.to_dict(), indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )
+
+
+def validate_provider_url(value: str, label: str) -> str:
+    parsed = urlparse(value.strip())
+    if (
+        parsed.scheme.casefold() != "https"
+        or not parsed.hostname
+        or parsed.username
+        or parsed.password
+    ):
+        raise ValueError(f"{label} must be a normal HTTPS URL without embedded credentials.")
+    return value.strip()

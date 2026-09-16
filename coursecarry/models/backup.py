@@ -17,6 +17,7 @@ class BackupFile:
     filename: str
     source_url: str
     expected_size: int | None = None
+    stable_id: str | None = None
 
 
 @dataclass(slots=True)

@@ -118,18 +118,24 @@ class BackupPage(QWidget):
         root.addLayout(actions)
 
     def set_courses(self, courses: list[Course]) -> None:
-        self.courses = courses
+        self.courses = [course for course in courses if course.available]
         self.course_list.clear()
-        for course in courses:
+        for course in self.courses:
             item = QListWidgetItem(course.code or course.name)
             item.setData(Qt.ItemDataRole.UserRole, course)
             self.course_list.addItem(item)
 
     def select_course(self, course: Course) -> None:
+        self.select_courses([course])
+
+    def select_courses(self, courses: list[Course]) -> None:
+        selected_ids = {course.id for course in courses if course.available}
         self.selected_courses.setChecked(True)
         for index in range(self.course_list.count()):
             item = self.course_list.item(index)
-            item.setSelected(item.data(Qt.ItemDataRole.UserRole).id == course.id)
+            item.setSelected(
+                item.data(Qt.ItemDataRole.UserRole).id in selected_ids
+            )
 
     def _request_start(self) -> None:
         if self.all_courses.isChecked():
@@ -183,5 +189,6 @@ class BackupPage(QWidget):
         self.progress_title.setText("Backup cancelled" if cancelled else "Backup complete")
         self.progress_detail.setText(
             f"Downloaded {stats.downloaded}  ·  Skipped {stats.skipped}  ·  "
-            f"Updated {stats.updated}  ·  Failed {stats.failed}"
+            f"Updated {stats.updated}  ·  Failed {stats.failed}  ·  "
+            f"Incomplete {stats.incomplete}"
         )

@@ -34,7 +34,7 @@ class OnboardingDialog(QDialog):
             "Personal backups, kept personal",
             "CourseCarry creates an offline archive of course content your student account can already access.\n\n"
             "It is an unofficial, independent student project and is not affiliated with or endorsed by "
-            "POLITEMall, D2L, or any Polytechnic. It does not store or ask for your school password.",
+            "your institution or D2L. It does not store or ask for your school password.",
         )
         location = self._page_shell(
             "Choose your archive location",

@@ -10,7 +10,7 @@ APP_DATA_DIR_NAME = "CourseCarry"
 
 
 def is_frozen() -> bool:
-    return bool(getattr(sys, "frozen", False))
+    return bool(getattr(sys, "frozen", False) or "__compiled__" in globals())
 
 
 def runtime_root() -> Path:

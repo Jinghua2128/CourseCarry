@@ -13,6 +13,9 @@ class Course:
     code: str = ""
     href: str = ""
     full_text: str = ""
+    category: str = "unknown"
+    available: bool = True
+    last_seen_at: str | None = None
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> "Course":
@@ -22,6 +25,11 @@ class Course:
             code=str(value.get("code") or ""),
             href=str(value.get("href") or ""),
             full_text=str(value.get("full_text") or ""),
+            category=str(value.get("category") or "unknown"),
+            available=bool(value.get("available", True)),
+            last_seen_at=(
+                str(value["last_seen_at"]) if value.get("last_seen_at") else None
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:

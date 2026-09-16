@@ -4,7 +4,7 @@ CourseCarry is experimental and currently needs careful compatibility testing mo
 
 ## Development setup
 
-1. Use Windows 10 or 11, Python 3.11+, and Google Chrome.
+1. Use 64-bit Windows 10 or 11, Python 3.11, and Google Chrome.
 2. Run `setup_windows.bat` or install `requirements.txt` in a virtual environment.
 3. Run `python -m unittest discover -s tests -v` before submitting a change.
 4. Keep automated tests offline; do not repeatedly exercise a school LMS.

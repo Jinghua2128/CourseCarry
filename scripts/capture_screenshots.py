@@ -41,11 +41,11 @@ def main() -> int:
     app.setStyleSheet(APP_STYLESHEET)
 
     fake_courses = [
-        Course(100101, "Applied Artificial Intelligence", "26S1-1_AAI_000101"),
-        Course(100102, "Cloud Architecture Fundamentals", "26S1-1_CAF_000102"),
-        Course(100103, "Secure Software Development", "26S1-1_SSD_000103"),
-        Course(900201, "Data Structures and Algorithms", "25S2-1_DSA_000201"),
-        Course(900202, "User Experience Design", "25S1-1_UXD_000202"),
+        Course(100101, "Applied Artificial Intelligence", "26S1-1_AAI_000101", category="current"),
+        Course(100102, "Cloud Architecture Fundamentals", "26S1-1_CAF_000102", category="current"),
+        Course(100103, "Secure Software Development", "26S1-1_SSD_000103", category="current"),
+        Course(900201, "Data Structures and Algorithms", "25S2-1_DSA_000201", category="archived"),
+        Course(900202, "User Experience Design", "25S1-1_UXD_000202", category="archived", available=False),
     ]
 
     with tempfile.TemporaryDirectory(prefix="coursecarry-screenshots-") as temp_dir:
@@ -62,6 +62,8 @@ def main() -> int:
         window = MainWindow(config, store, database)
         window.resize(1220, 790)
         window._set_courses(fake_courses)
+        window.courses_page.set_last_scan("Last scanned today at 2:30 PM")
+        window.dashboard.set_scan_status("Last scanned today at 2:30 PM")
         window.show()
 
         window._navigate(0)
@@ -69,6 +71,8 @@ def main() -> int:
         capture(window, app, "dashboard.png")
 
         window._navigate(1)
+        window.courses_page.selected_ids.update({100101, 100102})
+        window.courses_page.refresh()
         capture(window, app, "courses.png")
 
         window._navigate(2)

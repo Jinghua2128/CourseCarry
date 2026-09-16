@@ -41,8 +41,8 @@ QLabel#Brand {
     font-weight: 650;
     letter-spacing: 1px;
 }
-QLabel#Version, QLabel#Muted, QLabel#Eyebrow {
-    color: #8f98a5;
+QLabel#Version, QLabel#Muted, QLabel#Eyebrow, QLabel#PageContext {
+    color: #aab2bd;
 }
 QLabel#Version {
     font-size: 11px;
@@ -52,8 +52,12 @@ QLabel#Eyebrow {
     font-weight: 700;
     letter-spacing: 2px;
 }
+QLabel#PageContext {
+    font-size: 13px;
+    font-weight: 600;
+}
 QLabel#PageTitle {
-    font-size: 30px;
+    font-size: 28px;
     font-weight: 650;
 }
 QLabel#SectionTitle {
@@ -63,6 +67,24 @@ QLabel#SectionTitle {
 QLabel#Metric {
     font-size: 28px;
     font-weight: 650;
+}
+QLabel#SummaryValue {
+    font-size: 22px;
+    font-weight: 650;
+}
+QLabel#SelectionCount {
+    color: #dce4ea;
+    font-weight: 650;
+}
+QLabel#Unavailable {
+    color: #f2c58d;
+}
+QLabel#EmptyState {
+    color: #b5bec8;
+    background: #101419;
+    border: 1px solid #303741;
+    border-radius: 12px;
+    padding: 28px;
 }
 QLabel#StatusConnected {
     color: #a9f0cf;
@@ -100,6 +122,9 @@ QPushButton:hover {
 }
 QPushButton:pressed {
     background: #111419;
+}
+QPushButton:focus {
+    border-color: #a8ddc6;
 }
 QPushButton:disabled {
     color: #626a74;
@@ -148,6 +173,7 @@ QLineEdit, QComboBox, QSpinBox, QListWidget, QPlainTextEdit {
     border-radius: 8px;
     padding: 8px 10px;
     selection-background-color: #365849;
+    placeholder-text-color: #9fa8b3;
 }
 QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QListWidget:focus {
     border-color: #718176;

@@ -10,8 +10,8 @@ def page_heading(eyebrow: str, title: str, subtitle: str) -> QWidget:
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(5)
 
-    eyebrow_label = QLabel(eyebrow.upper())
-    eyebrow_label.setObjectName("Eyebrow")
+    eyebrow_label = QLabel(eyebrow)
+    eyebrow_label.setObjectName("PageContext")
     title_label = QLabel(title)
     title_label.setObjectName("PageTitle")
     subtitle_label = QLabel(subtitle)
@@ -33,8 +33,8 @@ class StatCard(QFrame):
         layout.setContentsMargins(18, 16, 18, 16)
         layout.setSpacing(6)
 
-        label_widget = QLabel(label.upper())
-        label_widget.setObjectName("Eyebrow")
+        label_widget = QLabel(label)
+        label_widget.setObjectName("PageContext")
         self.value_label = QLabel(value)
         self.value_label.setObjectName("Metric")
         self.detail_label = QLabel(detail)

@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "coursecarry"
-version = "0.5.0a0"
-description = "An unofficial, local-first POLITEMall / Brightspace backup utility for students."
+version = "0.6.3a0"
+description = "An unofficial, local-first Brightspace assignment-submission backup utility for students."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.12"
 license = { file = "LICENSE" }
 dependencies = [
   "playwright==1.55.0",
-  "PySide6==6.11.2",
+  "PySide6==6.5.3",
   "requests==2.34.2",
 ]
 

@@ -28,6 +28,7 @@ config.json
 # Build output
 build/
 dist/
+release/
 *.zip
 *.egg-info/
 

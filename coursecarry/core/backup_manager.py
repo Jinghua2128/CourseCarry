@@ -10,7 +10,7 @@ from playwright.sync_api import sync_playwright
 
 from ..config import AppConfig
 from ..models import Assignment, BackupOptions, BackupStats, Course, DownloadStatus
-from ..providers import NPBrightspaceProvider
+from ..providers import create_provider
 from ..utils.filenames import (
     assignment_archive_path,
     deduplicate_filename,
@@ -23,6 +23,25 @@ from .downloader import AuthenticatedDownloader, DownloadResult
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+def choose_archive_filename(
+    display_name: str,
+    previous_filename: str | None,
+    used_names: set[str],
+    reserved_names: set[str],
+) -> str:
+    """Keep prior filenames stable even when Brightspace changes file order."""
+
+    preferred = sanitize_filename(previous_filename or display_name, "unknown_file")
+    if previous_filename:
+        reserved_names.discard(preferred.casefold())
+        return deduplicate_filename(preferred, used_names)
+
+    blocked_names = used_names | reserved_names
+    filename = deduplicate_filename(preferred, blocked_names)
+    used_names.add(filename.casefold())
+    return filename
 
 
 class BackupEvents:
@@ -54,7 +73,7 @@ class BackupManager:
     def __init__(self, config: AppConfig, database: CourseCarryDatabase) -> None:
         self.config = config
         self.database = database
-        self.provider = NPBrightspaceProvider(config)
+        self.provider = create_provider(config)
 
     def run(
         self,
@@ -123,7 +142,7 @@ class BackupManager:
                                 )
                                 submission_dir = assignment_dir / "Submission"
                                 metadata_path = assignment_dir / "metadata.json"
-                                previous_fingerprints = self._previous_sources(
+                                previous_files = self._previous_files(
                                     metadata_path,
                                     course.id,
                                     assignment.id,
@@ -142,13 +161,28 @@ class BackupManager:
 
                             file_records: list[dict[str, Any]] = []
                             used_names: set[str] = set()
+                            reserved_names = {
+                                sanitize_filename(
+                                    str(record.get("filename") or "unknown_file"),
+                                    "unknown_file",
+                                ).casefold()
+                                for record in previous_files.values()
+                            }
 
                             for item in files:
                                 if cancelled():
                                     break
-                                filename = deduplicate_filename(
-                                    sanitize_filename(item.filename, "unknown_file"),
+                                file_id = item.stable_id or source_fingerprint(
+                                    item.source_url
+                                )
+                                previous = previous_files.get(file_id, {})
+                                filename = choose_archive_filename(
+                                    item.filename,
+                                    str(previous.get("filename"))
+                                    if previous.get("filename")
+                                    else None,
                                     used_names,
+                                    reserved_names,
                                 )
                                 events.file_started(filename)
                                 try:
@@ -157,7 +191,8 @@ class BackupManager:
                                         result = downloader.download(
                                             item,
                                             submission_dir / filename,
-                                            previous_fingerprints.get(filename),
+                                            str(previous.get("source_fingerprint") or "")
+                                            or None,
                                             events.file_progress,
                                             cancelled,
                                         )
@@ -182,9 +217,8 @@ class BackupManager:
                                 file_records.append(
                                     {
                                         "filename": filename,
-                                        "source_fingerprint": source_fingerprint(
-                                            item.source_url
-                                        ),
+                                        "file_id": file_id,
+                                        "source_fingerprint": file_id,
                                         "expected_size": result.expected_size,
                                         "local_size": result.size,
                                         "status": result.status.value,
@@ -231,11 +265,11 @@ class BackupManager:
         return stats
 
     @staticmethod
-    def _previous_sources(
+    def _previous_files(
         metadata_path: Path,
         expected_course_id: object,
         expected_assignment_id: object,
-    ) -> dict[str, str]:
+    ) -> dict[str, dict[str, str]]:
         if not metadata_path.exists():
             return {}
         try:
@@ -251,15 +285,19 @@ class BackupManager:
         ):
             raise ValueError("Existing metadata belongs to another LMS object.")
 
-        fingerprints: dict[str, str] = {}
+        records: dict[str, dict[str, str]] = {}
         for item in data.get("files", []):
             filename = item.get("filename")
             fingerprint = item.get("source_fingerprint")
             if not fingerprint and item.get("source_url"):
                 fingerprint = source_fingerprint(str(item["source_url"]))
-            if filename and fingerprint:
-                fingerprints[str(filename)] = str(fingerprint)
-        return fingerprints
+            file_id = item.get("file_id") or fingerprint
+            if filename and fingerprint and file_id:
+                records[str(file_id)] = {
+                    "filename": str(filename),
+                    "source_fingerprint": str(fingerprint),
+                }
+        return records
 
     @staticmethod
     def _write_metadata(

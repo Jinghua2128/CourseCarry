@@ -134,7 +134,7 @@ class AuthenticatedDownloader:
             )
         part_path = destination.with_name(f"{destination.name}.part")
         had_existing = destination.exists()
-        current_source_fingerprint = source_fingerprint(item.source_url)
+        current_source_fingerprint = item.stable_id or source_fingerprint(item.source_url)
 
         for attempt in range(1, self.retries + 1):
             if cancelled():

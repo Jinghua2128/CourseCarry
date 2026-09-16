@@ -10,7 +10,11 @@ from playwright.sync_api import BrowserContext, Error as PlaywrightError, Page, 
 
 from ..config import AppConfig
 from ..models import Assignment, BackupFile, Course
-from ..utils.url_security import is_same_https_origin, require_same_https_origin
+from ..utils.url_security import (
+    is_same_https_origin,
+    require_same_https_origin,
+    source_fingerprint,
+)
 from .base import CancelCallback, LMSProvider, StatusCallback
 
 
@@ -35,6 +39,13 @@ def extract_query_value(url: str, key: str) -> str | None:
     return values[0] if values else None
 
 
+def stable_file_id(url: str) -> str:
+    """Use the stable LMS file path while excluding rotating private query values."""
+
+    parsed = urlparse(url)
+    return source_fingerprint(f"{parsed.scheme}://{parsed.netloc}{parsed.path}")
+
+
 def is_trusted_course_page_url(
     url: str,
     portal_origin: str,
@@ -47,8 +58,37 @@ def is_trusted_course_page_url(
     )
 
 
-class NPBrightspaceProvider(LMSProvider):
-    """NP's currently tested Brightspace flow, using normal browser authentication."""
+def classify_course_view(label: str) -> str:
+    normalized = label.casefold()
+    if re.search(r"\b(archived|past|previous|older|inactive)\b", normalized):
+        return "archived"
+    if re.search(r"\b(current|active)\b", normalized):
+        return "current"
+    if re.fullmatch(r"\s*(?:my\s+)?courses?\s*", normalized):
+        return "current"
+    return "unknown"
+
+
+def merge_discovered_courses(
+    discovered: dict[int, Course], incoming: list[Course]
+) -> int:
+    """Accumulate course views by stable id without reclassifying earlier cards."""
+
+    before = len(discovered)
+    for course in incoming:
+        previous = discovered.get(course.id)
+        if (
+            previous is not None
+            and previous.category != "unknown"
+            and previous.category != course.category
+        ):
+            course.category = previous.category
+        discovered[course.id] = course
+    return len(discovered) - before
+
+
+class BrightspaceProvider(LMSProvider):
+    """Configurable Brightspace flow using normal browser authentication."""
 
     def __init__(self, config: AppConfig) -> None:
         self.config = config
@@ -89,11 +129,11 @@ class NPBrightspaceProvider(LMSProvider):
     ) -> list[Course]:
         page = self.active_page(context)
         on_status(
-            "Complete the normal POLITEMall login. CourseCarry will then open My Courses; "
+            "Complete the institution's normal login. CourseCarry will then open My Courses; "
             "you can also click it yourself."
         )
         try:
-            page.goto(self.config.base_url, wait_until="commit", timeout=60_000)
+            page.goto(self.config.base_url, wait_until="commit", timeout=15_000)
         except PlaywrightError as error:
             if "interrupted by another navigation" not in str(error):
                 LOGGER.warning("Portal navigation did not complete: %s", type(error).__name__)
@@ -104,6 +144,7 @@ class NPBrightspaceProvider(LMSProvider):
         discovered: dict[int, Course] = {}
         opened_controls: set[str] = set()
         last_discovery_at = time.monotonic()
+        collection_hint = "current"
         while time.monotonic() < deadline:
             if cancelled():
                 return []
@@ -115,10 +156,11 @@ class NPBrightspaceProvider(LMSProvider):
                     self.config.base_url,
                     self.config.lms_base_url,
                 ):
-                    before = len(discovered)
-                    for course in self._courses_from_cards(cards):
-                        discovered[course.id] = course
-                    if len(discovered) > before:
+                    page_hint = self._selected_course_view(page) or collection_hint
+                    added = merge_discovered_courses(
+                        discovered, self._courses_from_cards(cards, page_hint)
+                    )
+                    if added:
                         last_discovery_at = time.monotonic()
                         on_status(
                             f"Found {len(discovered)} course(s). Checking archived and "
@@ -144,15 +186,21 @@ class NPBrightspaceProvider(LMSProvider):
                     len(discovered),
                 )
                 if opened:
+                    opened_hint = classify_course_view(opened)
+                    if opened_hint != "unknown":
+                        collection_hint = opened_hint
+                    elif re.search(r"\ball\s+courses\b", opened, re.IGNORECASE):
+                        collection_hint = "unknown"
                     last_discovery_at = now
                     on_status(
                         f"Opened {opened}. Continuing to collect current and archived courses…"
                     )
-                    page.wait_for_timeout(1_000)
+                    if not self._interruptible_wait(page, 1_000, cancelled):
+                        return []
                     continue
                 self._nudge_course_loading(page)
 
-            if discovered and now - last_discovery_at >= 6:
+            if discovered and now - last_discovery_at >= 8:
                 courses = list(discovered.values())
                 LOGGER.info("Authenticated course cards detected: %d", len(courses))
                 return courses
@@ -164,12 +212,14 @@ class NPBrightspaceProvider(LMSProvider):
                 next_course_entry_attempt = now + 5
                 if self._open_course_listing(page):
                     on_status("Opening My Courses and waiting for the course list…")
-                    page.wait_for_timeout(1_500)
+                    if not self._interruptible_wait(page, 1_500, cancelled):
+                        return []
                     continue
-            page.wait_for_timeout(500)
+            if not self._interruptible_wait(page, 400, cancelled):
+                return []
 
         raise AuthenticationTimeoutError(
-            "Timed out waiting for the My Courses page. Open My Courses in Chrome and "
+            "Timed out waiting for My Courses. Open My Courses in Chrome and "
             "run Scan Courses again. No credentials were captured."
         )
 
@@ -208,18 +258,28 @@ class NPBrightspaceProvider(LMSProvider):
         label = re.compile(
             r"^\s*(?:"
             r"(?:view|show)\s+all\s+courses|"
+            r"all\s+courses|"
             r"my\s+courses?|"
             r"archived(?:\s+courses)?|"
             r"(?:show\s+)?archived\s+courses|"
+            r"(?:past|previous|older|inactive)(?:\s+courses)?|"
+            r"(?:current|active)(?:\s+courses)?|"
+            r"(?:course|semester|term)\s+(?:selector|filter)|"
+            r"more\s+courses|"
             r"(?:load|show)\s+more"
-            r")\b",
+            r")(?:\s*\(\d+\))?\s*$",
             re.IGNORECASE,
         )
         candidates = (
             page.get_by_role("button", name=label),
             page.get_by_role("link", name=label),
             page.get_by_role("tab", name=label),
+            page.get_by_role("combobox", name=label),
             page.locator("summary").filter(has_text=label),
+            page.locator(
+                'd2l-my-courses button[aria-label*="Next" i], '
+                'd2l-my-courses a[aria-label*="Next" i]'
+            ),
         )
         for candidate in candidates:
             try:
@@ -240,7 +300,11 @@ class NPBrightspaceProvider(LMSProvider):
                         )
                     )
                     repeatable = bool(
-                        re.match(r"^\s*(?:load|show)\s+more\b", text, re.IGNORECASE)
+                        re.match(
+                            r"^\s*(?:(?:load|show)\s+more|next)\b",
+                            text,
+                            re.IGNORECASE,
+                        )
                     )
                     if repeatable:
                         identity = f"{identity}|batch:{discovery_marker}"
@@ -264,7 +328,38 @@ class NPBrightspaceProvider(LMSProvider):
             pass
 
     @staticmethod
-    def _courses_from_cards(cards) -> list[Course]:
+    def _selected_course_view(page: Page) -> str | None:
+        try:
+            selected = page.locator(
+                '[aria-selected="true"], [aria-current="page"], '
+                'option:checked'
+            )
+            for index in range(min(selected.count(), 8)):
+                text = selected.nth(index).inner_text(timeout=500).strip()
+                category = classify_course_view(text)
+                if category != "unknown":
+                    return category
+        except PlaywrightError:
+            pass
+        return None
+
+    @staticmethod
+    def _interruptible_wait(
+        page: Page,
+        milliseconds: int,
+        cancelled: CancelCallback,
+    ) -> bool:
+        remaining = milliseconds
+        while remaining > 0:
+            if cancelled():
+                return False
+            interval = min(remaining, 100)
+            page.wait_for_timeout(interval)
+            remaining -= interval
+        return not cancelled()
+
+    @staticmethod
+    def _courses_from_cards(cards, category: str = "unknown") -> list[Course]:
         courses: list[Course] = []
         seen: set[int] = set()
         for index in range(cards.count()):
@@ -297,6 +392,7 @@ class NPBrightspaceProvider(LMSProvider):
                     code=code,
                     href=href,
                     full_text=full_text,
+                    category=category,
                 )
             )
         return courses
@@ -310,12 +406,13 @@ class NPBrightspaceProvider(LMSProvider):
     ) -> Page:
         require_same_https_origin(url, self.config.lms_base_url)
         try:
-            page.goto(url, wait_until="commit", timeout=60_000)
+            page.goto(url, wait_until="commit", timeout=15_000)
         except PlaywrightError as error:
             if "interrupted by another navigation" not in str(error):
                 raise
 
-        page.wait_for_timeout(2_000)
+        if not self._interruptible_wait(page, 2_000, cancelled):
+            return page
         if "login.microsoftonline.com" in page.url:
             on_status("Login required — complete Microsoft / school SSO and MFA in Chrome.")
             deadline = time.monotonic() + 600
@@ -326,11 +423,12 @@ class NPBrightspaceProvider(LMSProvider):
             if "login.microsoftonline.com" in page.url:
                 raise AuthenticationTimeoutError("Timed out waiting for normal browser login.")
             try:
-                page.goto(url, wait_until="commit", timeout=60_000)
+                page.goto(url, wait_until="commit", timeout=15_000)
             except PlaywrightError as error:
                 if "interrupted by another navigation" not in str(error):
                     raise
-            page.wait_for_timeout(2_000)
+            if not self._interruptible_wait(page, 2_000, cancelled):
+                return page
         require_same_https_origin(page.url, self.config.lms_base_url)
         return page
 
@@ -400,6 +498,7 @@ class NPBrightspaceProvider(LMSProvider):
                 BackupFile(
                     filename=link.inner_text().strip() or "unknown_file",
                     source_url=full_url,
+                    stable_id=stable_file_id(full_url),
                 )
             )
 
@@ -411,3 +510,7 @@ class NPBrightspaceProvider(LMSProvider):
                 submitted_at = text
                 break
         return files, submitted_at
+
+
+class NPBrightspaceProvider(BrightspaceProvider):
+    """The Brightspace flow with NP's tested portal and LMS URL preset."""

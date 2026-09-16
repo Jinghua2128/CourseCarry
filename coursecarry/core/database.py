@@ -36,7 +36,9 @@ class CourseCarryDatabase:
                     name TEXT NOT NULL,
                     code TEXT NOT NULL,
                     href TEXT NOT NULL,
-                    last_seen TEXT NOT NULL
+                    last_seen TEXT NOT NULL,
+                    category TEXT NOT NULL DEFAULT 'unknown',
+                    available INTEGER NOT NULL DEFAULT 1
                 );
                 CREATE TABLE IF NOT EXISTS backup_runs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,21 +49,46 @@ class CourseCarryDatabase:
                 );
                 """
             )
+            course_columns = {
+                str(row["name"])
+                for row in connection.execute("PRAGMA table_info(courses)").fetchall()
+            }
+            if "category" not in course_columns:
+                connection.execute(
+                    "ALTER TABLE courses ADD COLUMN category TEXT NOT NULL DEFAULT 'unknown'"
+                )
+            if "available" not in course_columns:
+                connection.execute(
+                    "ALTER TABLE courses ADD COLUMN available INTEGER NOT NULL DEFAULT 1"
+                )
 
     def save_courses(self, courses: list[Course]) -> None:
         now = datetime.now(timezone.utc).isoformat()
         with self.connect() as connection:
             connection.executemany(
                 """
-                INSERT INTO courses (id, name, code, href, last_seen)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO courses (id, name, code, href, last_seen, category, available)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     name=excluded.name,
                     code=excluded.code,
                     href=excluded.href,
-                    last_seen=excluded.last_seen
+                    last_seen=excluded.last_seen,
+                    category=excluded.category,
+                    available=excluded.available
                 """,
-                [(item.id, item.name, item.code, item.href, now) for item in courses],
+                [
+                    (
+                        item.id,
+                        item.name,
+                        item.code,
+                        item.href,
+                        item.last_seen_at or now,
+                        item.category,
+                        int(item.available),
+                    )
+                    for item in courses
+                ],
             )
 
     def start_backup_run(self) -> int:
