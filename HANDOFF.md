@@ -25,6 +25,8 @@
 - Release artifact: `D:\CourseCarry\release\CourseCarry-v0.6.3-alpha-windows-x64.zip`; final SHA-256 `ddb443f6d455681434cf110292fce1e07c7ba261b16ecccf2a6705b674675817`.
 - The ZIP includes `CourseCarry-Diagnostic.cmd` and `.ps1`. Windows PowerShell 5.1 tested the exact extracted diagnostic successfully: every listed native component loaded, QtGui 6.5.3 was reported without a direct D3D12 reference, and the report contained no username or filesystem paths.
 - Temporary smoke-test extraction/profile folders were removed after testing.
+- The complete v0.6.3-alpha source update was committed as `0cee297` and pushed to `master` at `https://github.com/Jinghua2128/CourseCarry` on 2026-09-16. GitHub reported that the repository had already moved from the old `Politeload` URL, so the local `origin` was updated to the CourseCarry URL.
+- No Git tag or GitHub Release was created. The verified release ZIP and checksum remain local for the user to publish separately.
 
 ## Work in progress
 
